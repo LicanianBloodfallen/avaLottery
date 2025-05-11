@@ -1,12 +1,21 @@
+import os
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import tempfile
 
 class GoogleSheetsClient:
-    def __init__(self, spreadsheet_id, credentials_path):
+    def __init__(self, spreadsheet_id, credentials_json_env):
         scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_path, scope)
+
+        # Parse JSON from environment variable and write to a temporary file
+        credentials_dict = json.loads(credentials_json_env)
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp_json:
+            json.dump(credentials_dict, temp_json)
+            temp_json_path = temp_json.name
+
+        creds = ServiceAccountCredentials.from_json_keyfile_name(temp_json_path, scope)
         self.client = gspread.authorize(creds)
         self.sheet = self.client.open_by_key(spreadsheet_id)
         self.attendance_sheet = self.sheet.worksheet('Obecności')
